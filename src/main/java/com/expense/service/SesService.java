@@ -19,50 +19,51 @@ public class SesService {
     @Value("${aws.ses.recipient}")
     private String recipient;
 
-    public SesService(@Value("${aws.accessKeyId}") String accessKeyId,
-                      @Value("${aws.secretAccessKey}") String secretAccessKey,
-                      @Value("${aws.region}") String region) {
+    public SesService(
+        @Value("${aws.accessKeyId}") String accessKeyId,
+        @Value("${aws.secretAccessKey}") String secretAccessKey,
+        @Value("${aws.region}") String region
+    ) {
         this.sesClient = SesClient.builder()
-                .region(Region.of(region))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(accessKeyId, secretAccessKey)))
-                .build();
+            .region(Region.of(region))
+            .credentialsProvider(
+                StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(accessKeyId, secretAccessKey)
+                )
+            )
+            .build();
     }
 
     public void sendExpenseAlertEmail(String description, double amount) {
         String subjectText = "🚨 High Expense Alert: $" + amount;
-        String bodyText = "A new expense of $" + amount + " was recorded: " + description;
+        String bodyText    = "A new expense of $" + amount + " was recorded: " + description;
 
         Destination destination = Destination.builder()
-                .toAddresses(recipient)
-                .build();
+            .toAddresses(recipient)
+            .build();
 
-        Content subjectContent = Content.builder()
-                .data(subjectText)
-                .charset("UTF-8")
-                .build();
+        Content subject = Content.builder()
+            .data(subjectText)
+            .charset("UTF-8")
+            .build();
 
-        Content bodyContent = Content.builder()
-                .data(bodyText)
-                .charset("UTF-8")
-                .build();
-
-        Body msgBody = Body.builder()
-                .text(bodyContent)
-                .build();
+        Content body = Content.builder()
+            .data(bodyText)
+            .charset("UTF-8")
+            .build();
 
         Message message = Message.builder()
-                .subject(subjectContent)
-                .body(msgBody)
-                .build();
+            .subject(subject)
+            .body(Body.builder().text(body).build())
+            .build();
 
-        SendEmailRequest request = SendEmailRequest.builder()
-                .source(sender)
-                .destination(destination)
-                .message(message)
-                .build();
+        SendEmailRequest req = SendEmailRequest.builder()
+            .source(sender)
+            .destination(destination)
+            .message(message)
+            .build();
 
-        sesClient.sendEmail(request);
+        sesClient.sendEmail(req);
         System.out.println("✅ SES Alert Email Sent");
     }
 }
