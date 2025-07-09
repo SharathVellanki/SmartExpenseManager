@@ -21,7 +21,7 @@ public class Expense {
     private String description;
     private double amount;
     private LocalDateTime createdAt;
-
+    private String receiptUrl;
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
