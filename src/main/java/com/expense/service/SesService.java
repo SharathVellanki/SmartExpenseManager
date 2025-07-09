@@ -3,10 +3,16 @@ package com.expense.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
-import software.amazon.awssdk.services.ses.model.*;
+import software.amazon.awssdk.services.ses.model.Body;
+import software.amazon.awssdk.services.ses.model.Content;
+import software.amazon.awssdk.services.ses.model.Destination;
+import software.amazon.awssdk.services.ses.model.Message;
+import software.amazon.awssdk.services.ses.model.SendEmailRequest;
 
 @Service
 public class SesService {
@@ -20,17 +26,24 @@ public class SesService {
     private String recipient;
 
     public SesService(
-        @Value("${aws.accessKeyId}") String accessKeyId,
-        @Value("${aws.secretAccessKey}") String secretAccessKey,
-        @Value("${aws.region}") String region
+        @Value("${aws.accessKeyId:}") String accessKeyId,
+        @Value("${aws.secretAccessKey:}") String secretAccessKey,
+        @Value("${aws.region:us-east-2}") String region
     ) {
+        AwsCredentialsProvider credsProvider;
+        if (!accessKeyId.isBlank() && !secretAccessKey.isBlank()) {
+            // Use static creds if both variables are provided
+            credsProvider = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(accessKeyId, secretAccessKey)
+            );
+        } else {
+            // Otherwise fall back to the EC2 instance role or default provider chain
+            credsProvider = DefaultCredentialsProvider.create();
+        }
+
         this.sesClient = SesClient.builder()
+            .credentialsProvider(credsProvider)
             .region(Region.of(region))
-            .credentialsProvider(
-                StaticCredentialsProvider.create(
-                    AwsBasicCredentials.create(accessKeyId, secretAccessKey)
-                )
-            )
             .build();
     }
 
@@ -64,6 +77,6 @@ public class SesService {
             .build();
 
         sesClient.sendEmail(req);
-        System.out.println("✅ SES Alert Email Sent");
+        System.out.println(" SES Alert Email Sent");
     }
 }
